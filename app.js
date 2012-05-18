@@ -22,22 +22,17 @@ function mongoStoreConnctionArgs() {
 }
 
 app.configure('development', function(){
-//  app.use(express.logger());
-  app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-//  db = mongoose.connect('mongodb://localhost/nodepad-development')   
+  app.use(express.errorHandler({ dumpExceptions: true }));
   app.set('db-uri', 'mongodb://localhost/nodepad-development');
 });
 
 app.configure('production', function(){
-//  app.use(express.logger());
   app.use(express.errorHandler());
-//  db = mongoose.connect('mongodb://localhost/nodepad-production')   
   app.set('db-uri', 'mongodb://localhost/nodepad-production');
 });
 
 app.configure('test', function() {
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-//  db = mongoose.connect('mongodb://localhost/nodepad-test')   
   app.set('db-uri', 'mongodb://localhost/nodepad-test');
 });
 
@@ -162,8 +157,7 @@ app.get('/documents/:id.:format?', loadUser, function(req, res) {
     switch (req.params.format) {
       case 'json':
         console.log('Read <get> : /documents/:id.:format? (json)');         
-
-        res.send(doc.__doc);
+        res.send(doc);
         break;
 
       default:
@@ -179,14 +173,14 @@ app.get('/documents/:id.:format?', loadUser, function(req, res) {
 // Update (Document)
 app.put('/documents/:id.:format?', loadUser, function(req, res) {
   Document.findById(req.body.document.id, function(err, doc) {  
-    doc.title = req.body.document.title;
+//    doc.title = req.body.document.title;
     doc.data = req.body.document.data;
     doc.save(function() {
       switch (req.params.format) {
         case 'json':
           console.log('Update <put> : /documents/:id.:format? (json)');
-          
-          res.send(d.__doc);
+//          console.log(doc);
+          res.send(doc);
           break;
         default:
           res.redirect('/documents');
@@ -251,7 +245,7 @@ app.get('/sessions/new', function(req, res) {
   res.render('sessions/new.jade', {
     locals: { user: new User() }
   });
-}); 
+});
 
 // Create (Sessions)
 app.post('/sessions', function(req, res) {
@@ -280,5 +274,3 @@ app.del('/sessions', loadUser, function(req, res) {
 app.listen(3000, function(){
   console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
 });
-
-// console.log(mongoStoreConnctionArgs());
