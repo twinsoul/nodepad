@@ -18,13 +18,22 @@
   $('.destroy').live('click', function(e) {
     e.preventDefault();
 
+    var id = $('#document-list .selected').itemID();
+
     if(confirm('Are you sure?')) {
       var element = $(this), 
+          act = '',
           form = $('<form></form>');
+
+      if(element.attr('href') == '/sessions') {
+        act = '/sessions';
+      } else {
+        act = '/documents/' + id;
+      }
     
       form.attr({
         'method': 'POST',
-        'action': element.attr('href')
+        'action': act
       })
       .hide()
       .append('<input type="hidden" />')

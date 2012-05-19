@@ -179,7 +179,6 @@ app.put('/documents/:id.:format?', loadUser, function(req, res) {
       switch (req.params.format) {
         case 'json':
           console.log('Update <put> : /documents/:id.:format? (json)');
-//          console.log(doc);
           res.send(doc);
           break;
         default:
