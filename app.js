@@ -8,6 +8,7 @@ var express = require('express')
   , routes = require('./routes')
   , mongoose = require('mongoose')
   , mongoStore = require('connect-mongodb')
+  , sys = require('util')
   , db
   , User
   , Document;
@@ -51,7 +52,7 @@ app.configure(function(){
   }));
   app.use(express.logger({ format: '\x1b[1m:method\x1b[0m \x1b[33m:url\x1b[0m :response-time ms' }))
   app.use(express.methodOverride());
-  app.use(app.router);
+//  app.use(app.router);
   app.use(express.static(__dirname + '/public'));
 });
 
@@ -77,6 +78,51 @@ function loadUser(req, res, next) {
     res.redirect('/sessions/new');
   }
 };
+
+// Error handling
+function NotFound(msg) {
+  this.name = 'NotFound';
+  Error.call(this, msg);
+  Error.captureStackTrace(this, arguments.callee);
+}
+
+sys.inherits(NotFound, Error);
+
+app.get('/bad', function(req, res) {
+  unknownMethod();
+});
+
+app.get('/404', function(req, res) {
+  console.log('/404 error');
+
+  throw new NotFound;
+});
+
+app.get('/500', function(req, res) {
+  console.log('/500 error');
+
+  throw new Error('An expected error');
+});
+
+app.error(function(err, req, res, next) {
+  console.log('app.error <error> : function(err, req, res, next)');
+	
+  if(err instanceof NotFound) {
+    res.render('404.jade', { status: 404 });
+  } else {
+    next(err);
+  }
+});
+
+app.error(function(err, req, res) {
+  console.log('app.error <error> : function(err, req, res)');
+
+  res.render('500.jade', {
+    status: 500,
+    locals: { error: err }
+  });
+});
+
 
 // Routes
 app.get('/', loadUser, function(req, res) {
@@ -115,10 +161,11 @@ app.get('/documents/new', loadUser, function(req, res) {
 });
 
 // Edit (Document)
-app.get('/documents/:id.:format?/edit', loadUser, function(req, res) {
+app.get('/documents/:id.:format?/edit', loadUser, function(req, res, next) {
   console.log('Edit <get> : /documents/:id.:format?/edit');
 
   Document.findById(req.params.id, function(err, doc) {
+    if(!doc) return next(new NotFound('Document not found'));
     res.render('documents/edit.jade', {
       locals: { d: doc, currentUser: req.currentUser}
     });
@@ -150,9 +197,12 @@ app.post('/documents.:format?', loadUser, function(req, res) {
 });
 
 // Read (Document)
-app.get('/documents/:id.:format?', loadUser, function(req, res) {
+app.get('/documents/:id.:format?', loadUser, function(req, res, next) {
   Document.findById(req.params.id, function(err, doc) {
     console.log(doc);
+
+    if(!doc) 
+      return next(new NotFound('Document not found'));
 
     switch (req.params.format) {
       case 'json':
@@ -171,8 +221,11 @@ app.get('/documents/:id.:format?', loadUser, function(req, res) {
 });
 
 // Update (Document)
-app.put('/documents/:id.:format?', loadUser, function(req, res) {
+app.put('/documents/:id.:format?', loadUser, function(req, res, next) {
   Document.findById(req.body.document.id, function(err, doc) {  
+    if(!doc) {
+      return next(new NotFound('Document not found'));
+    }
 //    doc.title = req.body.document.title;
     doc.data = req.body.document.data;
     doc.save(function() {
@@ -189,8 +242,11 @@ app.put('/documents/:id.:format?', loadUser, function(req, res) {
 });
 
 // Delete (Document)
-app.del('/documents/:id.:format?', loadUser, function(req, res) {
+app.del('/documents/:id.:format?', loadUser, function(req, res, next) {
   Document.findById(req.params.id, function(err, doc) {
+    if(!doc) {
+      return next(new NotFound('Document not found'));
+    }
     doc.remove(function() {
       switch (req.params.format) {
         case 'json':
